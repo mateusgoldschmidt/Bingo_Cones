@@ -1,541 +1,847 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Cone Runner</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#010212;color:#fff;font-family:'Courier New',monospace;overflow:hidden;user-select:none}
-#wrap{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
-canvas{display:block;border:2px solid #0ff;box-shadow:0 0 24px #0ff8,0 0 60px #0ff2;border-radius:6px;max-width:100%;max-height:calc(100vh - 70px)}
-#hud{width:100%;max-width:900px;display:flex;align-items:center;gap:14px;padding:6px 16px;background:rgba(0,0,0,.82);border-bottom:1px solid #0ff3;font-size:13px;white-space:nowrap;flex-wrap:wrap}
-.hval{color:#0ff;text-shadow:0 0 6px #0ff}
-.hval b{color:#fff}
-.lives{display:flex;gap:4px;margin-left:auto}
-.heart{font-size:17px}
-#msg{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);font-size:30px;font-weight:bold;pointer-events:none;opacity:0;transition:opacity .25s;text-shadow:0 0 20px currentColor;text-align:center;line-height:1.4;z-index:10}
-#startScreen,#gameOverScreen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-#startScreen{background:radial-gradient(ellipse at center,#04103a 0%,#010210 70%)}
-#startScreen h1{font-size:38px;color:#0ff;text-shadow:0 0 18px #0ff,0 0 45px #0ff4;letter-spacing:5px}
-#startScreen h2{font-size:14px;color:#f0f;letter-spacing:3px;text-shadow:0 0 10px #f0f;margin-bottom:4px}
-.tip{font-size:13px;color:#8cf;text-align:center;line-height:1.6}
-.tip b{color:#0ff}
-.tip .warn{color:#f88}
-#startBtn,#restartBtn{margin-top:10px;padding:10px 30px;border-radius:8px;border:2px solid #0ff;background:linear-gradient(135deg,#001630,#003060);color:#0ff;font-size:16px;font-weight:bold;cursor:pointer;letter-spacing:3px;text-shadow:0 0 8px #0ff;box-shadow:0 0 16px #0ff5;font-family:'Courier New',monospace;transition:all .2s}
-#startBtn:hover,#restartBtn:hover{background:linear-gradient(135deg,#003060,#005090);box-shadow:0 0 28px #0ff}
-#gameOverScreen{background:rgba(0,0,0,.93);display:none;flex-direction:column;gap:12px}
-#gameOverScreen h1{font-size:42px;color:#f44;text-shadow:0 0 22px #f44}
-#gameOverScreen .fs{font-size:17px;color:#fff}
-#gameOverScreen .fv{font-size:14px;color:#8cf;margin-top:4px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Geométrico: Domínio dos Cones (5x5)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CONFIGURAÇÕES GERAIS DE DESIGN (TELA) */
+        :root {
+            --bg-dark: #0b0c10;
+            --bg-card: #1f2833;
+            --electric-cyan: #00f0ff;
+            --neon-pink: #ff007f;
+            --text-light: #c5c6c7;
+            --white: #ffffff;
+            --success: #00ff88;
+            --danger: #ff3366;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 18px;
+            line-height: 1.5;
+        }
+
+        header {
+            background: linear-gradient(135deg, #12121c 0%, #1f2833 100%);
+            border-bottom: 2px solid var(--electric-cyan);
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.15);
+        }
+
+        header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            color: var(--white);
+            text-shadow: 0 0 10px var(--electric-cyan);
+            letter-spacing: 2px;
+        }
+
+        header p {
+            font-size: 1.1rem;
+            color: var(--electric-cyan);
+            margin-top: 5px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* NAVEGAÇÃO POR ABAS */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background-color: #121212;
+            border-bottom: 1px solid #333;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            padding: 15px 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: var(--electric-cyan);
+        }
+
+        .tab-btn.active {
+            color: var(--electric-cyan);
+            font-weight: bold;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--electric-cyan);
+            box-shadow: 0 0 10px var(--electric-cyan);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* PAINEL DE SORTEIO */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--bg-card);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .panel h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--white);
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn {
+            background: transparent;
+            border: 2px solid var(--electric-cyan);
+            color: var(--electric-cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 12px 24px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1) inset;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background-color: var(--electric-cyan);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--electric-cyan);
+        }
+
+        .btn-danger {
+            border-color: var(--neon-pink);
+            color: var(--neon-pink);
+            box-shadow: 0 0 10px rgba(255, 0, 127, 0.1) inset;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--neon-pink);
+            color: var(--white);
+            box-shadow: 0 0 20px var(--neon-pink);
+        }
+
+        /* DISPLAY DO ITEM SORTEADO */
+        .draw-display {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 6px;
+            border: 1px dashed rgba(0, 240, 255, 0.3);
+            margin-bottom: 20px;
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .draw-counter {
+            font-size: 1.1rem;
+            color: var(--neon-pink);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .draw-question {
+            font-size: 1.6rem;
+            color: var(--white);
+            font-weight: 700;
+            margin-bottom: 25px;
+            line-height: 1.3;
+        }
+
+        /* CAIXA DE REVELAÇÃO DA RESPOSTA */
+        .draw-answer-container {
+            width: 100%;
+            display: none; /* Só aparece quando há um sorteio ativo */
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .draw-answer-text {
+            font-size: 1.6rem;
+            color: var(--success);
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--success);
+            padding: 10px 25px;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            margin-top: 15px;
+            display: none; /* Fica oculto até o professor revelar */
+        }
+
+        /* HISTÓRICO DE SORTEADOS */
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .history-item {
+            background-color: rgba(255,255,255,0.03);
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .history-item.drawn {
+            border-color: var(--success);
+            color: var(--success);
+            background-color: rgba(0, 255, 136, 0.05);
+            font-weight: bold;
+        }
+
+        /* CONFERIDOR DE CARTELAS */
+        .checker-form {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .input-field {
+            background-color: rgba(0,0,0,0.5);
+            border: 1px solid #555;
+            color: var(--white);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            padding: 10px 15px;
+            border-radius: 4px;
+            flex-grow: 1;
+        }
+
+        .checker-result {
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            padding: 20px;
+            display: none;
+        }
+
+        .checker-status-header {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .checker-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            margin-top: 15px;
+        }
+
+        .checker-cell {
+            background: #252e3a;
+            border: 1px solid #444;
+            padding: 10px 5px;
+            text-align: center;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 65px;
+            word-break: break-word;
+        }
+
+        .checker-cell.matched {
+            border-color: var(--success);
+            background-color: rgba(0, 255, 136, 0.1);
+            color: var(--success);
+            font-weight: bold;
+        }
+
+        .checker-cell.missing {
+            border-color: var(--danger);
+            background-color: rgba(255, 51, 102, 0.05);
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* ÁREA DE IMPRESSÃO (CARTELAS) */
+        .print-controls {
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #333;
+        }
+
+        .cards-print-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 850px) {
+            .cards-print-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* MODELO DE CARTELA EXCLUSIVO PARA IMPRESSÃO EM PAPEL */
+        .bingo-card {
+            background-color: #ffffff;
+            color: #000000;
+            border: 3px solid #000000;
+            border-radius: 0px;
+            padding: 15px;
+            width: 100%;
+            max-width: 520px;
+            margin: 0 auto 20px auto;
+            box-shadow: none;
+            page-break-inside: avoid;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .card-id {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem;
+            background-color: #000000;
+            color: #ffffff;
+            padding: 2px 8px;
+            font-weight: bold;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            border-top: 2px solid #000000;
+            border-left: 2px solid #000000;
+        }
+
+        .card-cell {
+            border-right: 2px solid #000000;
+            border-bottom: 2px solid #000000;
+            padding: 8px 2px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            min-height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #ffffff;
+            word-wrap: break-word;
+            line-height: 1.1;
+        }
+
+        .card-footer-info {
+            margin-top: 10px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* REGRAS DE IMPRESSÃO CSS */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            header, .tabs, .print-controls, .panel {
+                display: none !important;
+            }
+            .tab-content {
+                display: block !important;
+            }
+            #panel-cartelas {
+                display: block !important;
+            }
+            .cards-print-container {
+                display: block !important;
+                width: 100% !important;
+            }
+            .bingo-card {
+                width: 48% !important;
+                display: inline-block !important;
+                vertical-align: top !important;
+                margin: 1% !important;
+                page-break-inside: avoid !important;
+                border: 3px solid #000000 !important;
+            }
+            .bingo-card:nth-child(4n) {
+                page-break-after: always !important;
+            }
+        }
+    </style>
 </head>
 <body>
-<div id="wrap">
- <div id="hud">
-  <div class="hval">raio (r): <b id="hR">12</b></div>
-  <div class="hval">altura (h): <b id="hH">22</b></div>
-  <div class="hval">geratriz (g): <b id="hG">25</b></div>
-  <div class="hval">volume: <b id="hV">3318</b></div>
-  <div class="hval">pontos: <b id="hS">0</b></div>
-  <div class="lives" id="livesEl"></div>
- </div>
- <canvas id="cv"></canvas>
- <div id="msg"></div>
- <div id="startScreen">
-  <h1>CONE RUNNER</h1>
-  <h2>MISSAO DE ESTABILIDADE</h2>
-  <div class="tip"><b>&larr; &rarr;</b> &nbsp; mudar de pista<br>Portais transformam o cone automaticamente<br>Passe pelos t&uacute;neis com o raio certo<br><span class="warn">Bloco vermelho = perder uma vida (&hearts;)</span></div>
-  <button id="startBtn">INICIAR</button>
- </div>
- <div id="gameOverScreen">
-  <h1>FIM DE JOGO</h1>
-  <p class="fs">Pontuacao: <b id="goScore">0</b></p>
-  <p class="fv" id="goStats"></p>
-  <button id="restartBtn">JOGAR NOVAMENTE</button>
- </div>
-</div>
-<script>
-// ===== CANVAS RESPONSIVO =====
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-const HUD_H = 38;
-function resizeCanvas(){
- const vw = window.innerWidth;
- const vh = window.innerHeight - HUD_H - 8;
- const ratio = 900/500;
- let cw = Math.min(vw - 4, 900);
- let ch = cw / ratio;
- if(ch > vh){ ch = vh; cw = ch * ratio; }
- cv.width  = Math.floor(cw);
- cv.height = Math.floor(ch);
-}
-resizeCanvas();
-const W = ()=> cv.width;
-const H = ()=> cv.height;
-const LW= ()=> W()/3;
 
-// DOM refs
-const elR=document.getElementById('hR'),elH=document.getElementById('hH');
-const elG=document.getElementById('hG'),elV=document.getElementById('hV');
-const elS=document.getElementById('hS'),elLives=document.getElementById('livesEl');
-const elMsg=document.getElementById('msg');
-const elStart=document.getElementById('startScreen');
-const elOver=document.getElementById('gameOverScreen');
+    <header>
+        <h1>BINGO DOS CONES</h1>
+        <p>Geometria Espacial • Matriz 5x5</p>
+    </header>
 
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const hit2=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('sorteio')">Painel do Professor</button>
+        <button class="tab-btn" onclick="switchTab('cartelas')">Gerar & Imprimir Cartelas</button>
+    </div>
 
-// ===== PARTÍCULAS =====
-const PARTS=[];
-function burst(x,y,col,n=22){
- for(let i=0;i<n;i++){
-  const a=Math.random()*Math.PI*2,s=2+Math.random()*5;
-  PARTS.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-1,life:1,col,sz:2+Math.random()*4});
- }
-}
-function tickParts(dt){
- const f=dt/16.67;
- for(let i=PARTS.length-1;i>=0;i--){
-  const p=PARTS[i];
-  p.x+=p.vx*f;p.y+=p.vy*f;p.vy+=0.1*f;p.life-=0.025*f;
-  if(p.life<=0)PARTS.splice(i,1);
- }
-}
-function drawParts(){
- PARTS.forEach(p=>{
-  ctx.save();ctx.globalAlpha=p.life;
-  ctx.shadowColor=p.col;ctx.shadowBlur=8;
-  ctx.fillStyle=p.col;
-  ctx.beginPath();ctx.arc(p.x,p.y,p.sz*p.life,0,Math.PI*2);ctx.fill();
-  ctx.restore();
- });
-}
+    <div class="container">
+        
+        <div id="panel-sorteio" class="tab-content active">
+            <div class="dashboard">
+                
+                <div class="panel">
+                    <h2>
+                        <span>Sorteador Eletrônico</span>
+                        <button class="btn btn-danger" onclick="resetGame()" style="font-size: 0.8rem; padding: 6px 12px;">Reiniciar</button>
+                    </h2>
+                    
+                    <div class="draw-display">
+                        <div class="draw-counter" id="draw-count">Nenhum item sorteado</div>
+                        <div class="draw-question" id="draw-question">Clique em "Sortear Próximo Item" para iniciar.</div>
+                        
+                        <div class="draw-answer-container" id="answer-container">
+                            <button id="btn-reveal" class="btn" onclick="toggleAnswer()" style="font-size: 0.9rem; padding: 8px 15px; border-color: #fff; color: #fff;">👁️ Revelar Resposta aos Alunos</button>
+                            <div class="draw-answer-text" id="draw-answer">Gabarito: </div>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <button class="btn" id="btn-draw" onclick="drawItem()" style="font-size: 1.3rem; padding: 15px 40px;">Sortear Próximo Item</button>
+                    </div>
 
-// ===== TRILHA =====
-const TRAIL=[];
-function pushTrail(x,y){
- TRAIL.push({x,y,life:1});
- if(TRAIL.length>22)TRAIL.shift();
- for(const t of TRAIL) t.life=Math.max(0,t.life-0.045);
-}
-function drawTrail(){
- for(let i=1;i<TRAIL.length;i++){
-  const t=TRAIL[i],p=TRAIL[i-1];
-  ctx.save();ctx.globalAlpha=t.life*0.4;
-  ctx.strokeStyle='#0ff';ctx.lineWidth=3*t.life;
-  ctx.shadowColor='#0ff';ctx.shadowBlur=5;
-  ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(t.x,t.y);ctx.stroke();
-  ctx.restore();
- }
-}
+                    <h3>Itens Restantes no Globo: <span id="remaining-count" style="color: var(--electric-cyan);">60</span></h3>
+                </div>
 
-// ===== CONE PLAYER =====
-class Cone{
- constructor(){
-  this.lane=1;
-  this.r=12;this.h=22;
-  this.sc=2.6; // escala pixel
-  this.px=LW()*1.5;
-  this.targetX=this.px;
-  this.invTimer=0;
- }
- get py(){return H()-52;} // sempre relativo ao canvas atual
- get g(){return Math.sqrt(this.r*this.r+this.h*this.h);}
- get vol(){return(Math.PI*this.r*this.r*this.h)/3;}
- get rPx(){return this.r*this.sc;}
- get hPx(){return this.h*this.sc;}
- hitbox(){return{x:this.px-this.rPx,y:this.py-this.hPx,w:this.rPx*2,h:this.hPx};}
- setLane(l){
-  this.lane=clamp(l,0,2);
-  this.targetX=LW()*(this.lane+0.5);
- }
- update(dt){
-  const f=dt/16.67;
-  this.px+=(this.targetX-this.px)*0.14*f;
-  if(this.invTimer>0)this.invTimer-=dt;
- }
- draw(){
-  const x=this.px,y=this.py;
-  const rp=this.rPx,hp=this.hPx;
-  pushTrail(x,y-hp*0.25);
-  drawTrail();
-  ctx.save();
-  if(this.invTimer>0&&Math.floor(this.invTimer/80)%2===0){ctx.globalAlpha=0.25;}
-  // sombra
-  ctx.save();ctx.globalAlpha=0.15;ctx.fillStyle='#0ff';
-  ctx.beginPath();ctx.ellipse(x,y,rp,rp*0.28,0,0,Math.PI*2);ctx.fill();
-  ctx.restore();
-  // corpo
-  const gr=ctx.createLinearGradient(x,y-hp,x,y);
-  gr.addColorStop(0,'#fff');gr.addColorStop(0.15,'#0ff');
-  gr.addColorStop(0.65,'#09f');gr.addColorStop(1,'#002244');
-  ctx.shadowColor='#0ff';ctx.shadowBlur=18;
-  ctx.fillStyle=gr;
-  ctx.beginPath();ctx.moveTo(x,y-hp);ctx.lineTo(x-rp,y);ctx.lineTo(x+rp,y);ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.lineWidth=1;ctx.stroke();
-  // geratriz tracejada
-  ctx.save();ctx.setLineDash([5,4]);
-  ctx.strokeStyle='rgba(0,255,255,0.5)';ctx.lineWidth=1.5;ctx.shadowBlur=0;
-  ctx.beginPath();ctx.moveTo(x,y-hp);ctx.lineTo(x+rp,y);ctx.stroke();
-  ctx.setLineDash([]);ctx.font='10px Courier New';
-  ctx.fillStyle='rgba(0,255,255,0.75)';
-  ctx.fillText('g',x+rp*0.52,y-hp*0.44);
-  ctx.restore();
-  // base
-  ctx.beginPath();ctx.ellipse(x,y,rp,rp*0.3,0,0,Math.PI*2);
-  ctx.fillStyle='rgba(0,200,255,0.3)';ctx.fill();
-  ctx.strokeStyle='#0ff';ctx.lineWidth=1.5;ctx.shadowBlur=8;ctx.stroke();
-  ctx.restore();
- }
-}
+                <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between; gap: 20px;">
+                    <div>
+                        <h2>Validador de Cartelas</h2>
+                        <div class="checker-form">
+                            <input type="number" id="check-card-id" class="input-field" placeholder="Código Único (Ex: 14)" min="1">
+                            <button class="btn" onclick="validateCard()">Verificar</button>
+                        </div>
+                        
+                        <div class="checker-result" id="checker-result">
+                            <div class="checker-status-header" id="checker-status">STATUS</div>
+                            <div class="checker-grid" id="checker-grid"></div>
+                        </div>
+                    </div>
 
-// ===== CLASSE OBSTACLE =====
-class Obstacle{
- constructor(lane,type,spd){
-  this.lane=lane;this.type=type;this.spd=spd;
-  this.cx=LW()*(lane+0.5);
-  this.y=-210;
-  this.w=LW()*0.76;this.h=170;
-  this.done=false;
-  if(type==='tunnel'){
-   // abertura: 44 a 92px em passos de 12
-   this.gap=44+Math.floor(Math.random()*5)*12;
-  }
- }
- get x(){return this.cx-this.w/2;}
- update(dt){this.y+=this.spd*(dt/16.67);}
- isOff(){return this.y>H()+20;}
+                    <div>
+                        <h2 style="margin-top: 20px; font-size: 1.2rem; color: var(--electric-cyan);">Quadro Geral de Termos (Gabarito)</h2>
+                        <div class="history-grid" id="history-grid"></div>
+                    </div>
+                </div>
 
- apply(cone,gs){
-  if(this.done)return;
-  this.done=true;
-  const cx=this.cx,cy=this.y+this.h*0.5;
-  if(this.type==='portal_r_up'){
-   cone.r=clamp(cone.r+3,4,28);
-   showMsg('+raio  r='+cone.r.toFixed(0),'#0f8');
-   burst(cx,cy,'#0f8');gs.score+=50;
-  }else if(this.type==='portal_r_dn'){
-   cone.r=clamp(cone.r-3,4,28);
-   showMsg('-raio  r='+cone.r.toFixed(0),'#ff0');
-   burst(cx,cy,'#ff0');gs.score+=50;
-  }else if(this.type==='portal_h_up'){
-   cone.h=clamp(cone.h+4,6,48);
-   showMsg('+altura  h='+cone.h.toFixed(0),'#4af');
-   burst(cx,cy,'#4af');gs.score+=50;
-  }else if(this.type==='portal_h_dn'){
-   cone.h=clamp(cone.h-4,6,48);
-   showMsg('-altura  h='+cone.h.toFixed(0),'#fa4');
-   burst(cx,cy,'#fa4');gs.score+=50;
-  }else if(this.type==='tunnel'){
-   if(cone.rPx<=this.gap/2+5){
-    showMsg('PASSOU! +200','#0ff',1400);
-    burst(cx,cy,'#0ff',36);gs.score+=200;
-   }else{
-    gs.loseLife(cone);
-    const needed=Math.ceil(this.gap/2/cone.sc);
-    showMsg('MUITO LARGO!\nr precisava ser <='+needed,'#f44',2000);
-   }
-  }
- }
+            </div>
+        </div>
 
- draw(){
-  ctx.save();
-  const cx=this.cx;
-  if(this.type==='block'){
-   // BLOCO VERMELHO
-   const g2=ctx.createLinearGradient(this.x,this.y,this.x,this.y+this.h);
-   g2.addColorStop(0,'rgba(230,30,30,0.92)');g2.addColorStop(1,'rgba(110,0,0,0.92)');
-   ctx.shadowColor='#f44';ctx.shadowBlur=26;
-   ctx.fillStyle=g2;
-   ctx.beginPath();ctx.roundRect(this.x,this.y,this.w,this.h,8);ctx.fill();
-   ctx.strokeStyle='#ff5555';ctx.lineWidth=2.5;ctx.stroke();
-   ctx.font='bold 26px serif';ctx.textAlign='center';
-   ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=8;
-   ctx.fillText('\u2665',cx,this.y+this.h*0.46);
-   ctx.font='bold 12px Courier New';ctx.fillStyle='#ffaaaa';ctx.shadowBlur=0;
-   ctx.fillText('EVITE!',cx,this.y+this.h*0.72);
-  }else if(this.type==='tunnel'){
-   // TUNEL: duas paredes com abertura
-   const gap=this.gap;
-   const wallW=(this.w-gap)/2;
-   const wg=ctx.createLinearGradient(this.x,0,this.x+wallW,0);
-   wg.addColorStop(0,'rgba(0,50,110,0.96)');wg.addColorStop(1,'rgba(0,110,200,0.88)');
-   ctx.shadowColor='#08f';ctx.shadowBlur=20;
-   ctx.fillStyle=wg;
-   // parede esq
-   ctx.beginPath();ctx.roundRect(this.x,this.y,wallW,this.h,4);ctx.fill();
-   ctx.strokeStyle='#0cf';ctx.lineWidth=2;ctx.stroke();
-   // parede dir
-   const rx=this.x+wallW+gap;
-   ctx.beginPath();ctx.roundRect(rx,this.y,wallW,this.h,4);ctx.fill();ctx.stroke();
-   // zona livre (levemente iluminada)
-   ctx.save();ctx.globalAlpha=0.08;ctx.fillStyle='#0ff';
-   ctx.fillRect(this.x+wallW,this.y,gap,this.h);ctx.restore();
-   // seta pra baixo no centro
-   ctx.save();
-   ctx.strokeStyle='rgba(0,255,255,0.65)';ctx.lineWidth=2;
-   ctx.shadowColor='#0ff';ctx.shadowBlur=6;
-   const ay=this.y+this.h*0.5;
-   ctx.beginPath();ctx.moveTo(cx,ay-16);ctx.lineTo(cx,ay+16);ctx.stroke();
-   ctx.beginPath();ctx.moveTo(cx-7,ay+7);ctx.lineTo(cx,ay+16);ctx.lineTo(cx+7,ay+7);ctx.stroke();
-   ctx.restore();
-   // label
-   ctx.font='bold 11px Courier New';ctx.textAlign='center';
-   ctx.fillStyle='#0ff';ctx.shadowColor='#0ff';ctx.shadowBlur=5;
-   const neededR=(this.gap/2/2.6).toFixed(0);
-   ctx.fillText('r <= '+neededR,cx,this.y+14);
-   ctx.fillText('TUNEL',cx,this.y+this.h-8);
-  }else{
-   // PORTAL
-   const COLS={portal_r_up:'#0f8',portal_r_dn:'#ff0',portal_h_up:'#4af',portal_h_dn:'#fa4'};
-   const LBLS={portal_r_up:'+r  +raio',portal_r_dn:'-r  -raio',portal_h_up:'+h  +altura',portal_h_dn:'-h  -altura'};
-   const SUBS={portal_r_up:'raio cresce',portal_r_dn:'raio diminui',portal_h_up:'cone fica mais alto',portal_h_dn:'cone fica mais baixo'};
-   const col=COLS[this.type]||'#fff';
-   ctx.shadowColor=col;ctx.shadowBlur=22;
-   ctx.strokeStyle=col;ctx.lineWidth=2.5;
-   const pg=ctx.createLinearGradient(this.x,this.y,this.x,this.y+this.h);
-   pg.addColorStop(0,'rgba(0,0,0,0)');
-   pg.addColorStop(0.45,col+'22');
-   pg.addColorStop(1,'rgba(0,0,0,0)');
-   ctx.fillStyle=pg;
-   ctx.beginPath();ctx.roundRect(this.x,this.y,this.w,this.h,8);ctx.fill();ctx.stroke();
-   // mini cones antes/depois
-   this._miniCones(col);
-   // label
-   ctx.font='bold 19px Courier New';ctx.textAlign='center';
-   ctx.fillStyle=col;ctx.shadowBlur=10;
-   ctx.fillText(LBLS[this.type]||'',cx,this.y+this.h*0.62);
-   ctx.font='10px Courier New';ctx.fillStyle=col+'99';ctx.shadowBlur=0;
-   ctx.fillText(SUBS[this.type]||'',cx,this.y+this.h*0.78);
-  }
-  ctx.restore();
- }
+        <div id="panel-cartelas" class="tab-content">
+            <div class="print-controls">
+                <div>
+                    <label style="font-family:'Orbitron'; margin-right: 10px;">Quantidade de Cartelas:</label>
+                    <input type="number" id="print-quantity" class="input-field" value="25" min="1" max="100" style="width: 100px; text-align:center;">
+                </div>
+                <button class="btn" onclick="window.print()"><span style="margin-right: 8px;">🖨️</span> Imprimir Cartelas</button>
+            </div>
 
- _miniCones(col){
-  ctx.save();
-  const y0=this.y+this.h*0.28;
-  const cx=this.cx;
-  // cone antes (cinza)
-  ctx.globalAlpha=0.45;ctx.fillStyle='#888';
-  ctx.beginPath();ctx.moveTo(cx-26,y0-12);ctx.lineTo(cx-34,y0);ctx.lineTo(cx-18,y0);ctx.closePath();ctx.fill();
-  // seta
-  ctx.font='13px serif';ctx.fillStyle=col;ctx.textAlign='center';ctx.globalAlpha=0.85;
-  ctx.fillText('\u2192',cx,y0-4);
-  // cone depois
-  let r2=8,h2=12;
-  if(this.type==='portal_r_up')r2=14;
-  else if(this.type==='portal_r_dn')r2=4;
-  else if(this.type==='portal_h_up')h2=20;
-  else if(this.type==='portal_h_dn')h2=5;
-  ctx.globalAlpha=0.78;ctx.fillStyle=col;
-  ctx.beginPath();ctx.moveTo(cx+26,y0-h2);ctx.lineTo(cx+26-r2,y0);ctx.lineTo(cx+26+r2,y0);ctx.closePath();ctx.fill();
-  ctx.restore();
- }
-}
+            <div class="cards-print-container" id="cards-container"></div>
+        </div>
 
-// ===== GAME STATE =====
-const GS={
- cone:null,obs:[],lives:3,score:0,
- running:false,lastTime:0,bgOff:0,
- spawnTimer:0,spawnEvery:1500,speed:3.6,
- loseLife(cone){
-  this.lives=Math.max(0,this.lives-1);
-  cone.invTimer=2400;
-  burst(cone.px,cone.py-cone.hPx*0.5,'#f44',30);
-  renderLives();
-  if(this.lives<=0)this.over();
-  else showMsg('-1 VIDA!','#f44',900);
- },
- over(){
-  this.running=false;
-  document.getElementById('goScore').textContent=Math.floor(this.score);
-  document.getElementById('goStats').textContent=
-   'r='+this.cone.r.toFixed(1)+' | h='+this.cone.h.toFixed(1)+
-   ' | g='+this.cone.g.toFixed(1)+' | V='+Math.round(this.cone.vol);
-  elOver.style.display='flex';
- },
- reset(){
-  resizeCanvas();
-  this.cone=new Cone();
-  this.obs=[];this.lives=3;this.score=0;
-  this.running=true;this.lastTime=0;
-  this.bgOff=0;this.spawnTimer=0;
-  this.spawnEvery=1500;this.speed=3.6;
-  PARTS.length=0;TRAIL.length=0;
-  renderLives();
- }
-};
+    </div>
 
-// ===== LIVES HUD =====
-function renderLives(){
- elLives.innerHTML='';
- for(let i=0;i<3;i++){
-  const s=document.createElement('span');
-  s.className='heart';
-  s.textContent=i<GS.lives?'\u2665':'\u2661';
-  s.style.color=i<GS.lives?'#f44':'#333';
-  elLives.appendChild(s);
- }
-}
+    <script>
+        // =========================================================================
+        // BANCO DE DADOS REVISADO (60 ITENS ÚNICOS E CLAROS)
+        // Nenhuma resposta (campo 'a') se repete, permitindo a checagem exata.
+        // =========================================================================
+        const BINGO_DATABASE = [
+            { id: 0, q: "Qual é a fórmula do Teorema de Pitágoras aplicada ao cone (relação entre g, r, h)?", a: "g² = r² + h²" },
+            { id: 1, q: "Qual é a fórmula matemática do Volume de qualquer cone?", a: "V = (π·r²·h)/3" },
+            { id: 2, q: "Qual é a fórmula da Área Lateral de um cone circular reto?", a: "Al = π·r·g" },
+            { id: 3, q: "Qual é a fórmula da Área Total de um cone?", a: "At = π·r·(g + r)" },
+            { id: 4, q: "Qual é a relação matemática que define que um cone é EQUILÁTERO?", a: "g = 2r" },
+            { id: 5, q: "O corte vertical bem no meio de um cone reto comum (secção meridiana) forma um...", a: "Triângulo Isósceles" },
+            { id: 6, q: "O corte vertical bem no meio de um cone EQUILÁTERO (secção meridiana) forma um...", a: "Triângulo Equilátero" },
+            { id: 7, q: "A planificação (desdobramento) da superfície lateral de um cone gera a forma de um...", a: "Setor Circular" },
+            { id: 8, q: "A base de apoio de um cone circular reto tem o formato de um...", a: "Círculo" },
+            { id: 9, q: "O segmento reto que liga o Vértice (topo) até o centro exato da base chama-se...", a: "Altura (h)" },
+            { id: 10, q: "Qualquer segmento que liga o Vértice até a borda externa (circunferência) da base chama-se...", a: "Geratriz (g)" },
+            { id: 11, q: "Como se chama o ponto extremo superior do cone (a sua ponta)?", a: "Vértice" },
+            { id: 12, q: "Se cortarmos a ponta de um cone com um plano paralelo à base, a parte de baixo que sobra é o...", a: "Tronco de Cone" },
+            { id: 13, q: "Como chamamos um cone cujo eixo central é inclinado e NÃO faz 90° com a base?", a: "Cone Oblíquo" },
+            { id: 14, q: "Cone gerado girando-se um triângulo retângulo em torno de um dos seus catetos:", a: "Cone de Revolução" },
+            { id: 15, q: "Qual é a fração que representa a razão entre o volume de um cone e de um cilindro de mesma base e altura?", a: "1/3" },
+            { id: 16, q: "Se o raio da base mede 3 e a altura mede 4, quanto mede a geratriz (g)?", a: "5" },
+            { id: 17, q: "Se o raio da base mede 6 e a geratriz mede 10, quanto mede a altura (h)?", a: "8" },
+            { id: 18, q: "Se a altura mede 24 e a geratriz mede 25, quanto mede o raio (r)?", a: "7" },
+            { id: 19, q: "Se duplicarmos APENAS a altura de um cone, seu volume é multiplicado por...", a: "2" },
+            { id: 20, q: "Se duplicarmos APENAS o raio de um cone, seu volume é multiplicado por...", a: "4" },
+            { id: 21, q: "Se triplicarmos TODAS as medidas (raio e altura), o volume original é multiplicado por...", a: "27" },
+            { id: 22, q: "Calcule a Área da Base (π·r²) se o raio for 3.", a: "9π" },
+            { id: 23, q: "Calcule a Área Lateral (π·r·g) de um cone com raio r=2 e geratriz g=5.", a: "10π" },
+            { id: 24, q: "Qual o Volume se a Área da Base (Ab) é 15π e a altura (h) é 4?", a: "20π" },
+            { id: 25, q: "A secção meridiana de um cone equilátero tem lado medindo 6. Portanto, a geratriz vale...", a: "6" },
+            { id: 26, q: "Se a geratriz de um cone EQUILÁTERO vale 18, qual é a medida do seu raio?", a: "9" },
+            { id: 27, q: "Qual é o ângulo do setor circular gerado ao planificar um cone EQUILÁTERO?", a: "180°" },
+            { id: 28, q: "Se r=5 e h=3, qual é o valor numérico puro da conta: (r² vezes h)?", a: "75" },
+            { id: 29, q: "Calcule o perímetro (comprimento 2πr) da circunferência da base de um cone com raio r=3.", a: "6π" },
+            { id: 30, q: "Qual o perímetro (comprimento 2πr) da base de um cone cujo raio é r=7?", a: "14π" },
+            { id: 31, q: "Calcule a Área Lateral de um cone com raio r=3 e geratriz g=4.", a: "12π" },
+            { id: 32, q: "Determine o Volume de um cone com raio r=4 e altura h=3.", a: "16π" },
+            { id: 33, q: "Aplicando Pitágoras: se a altura é 6 e o raio é 8, quanto vale a geratriz?", a: "10" },
+            { id: 34, q: "Aplicando Pitágoras: se a geratriz é 26 e o raio é 10, a altura mede...", a: "24" },
+            { id: 35, q: "Aplicando Pitágoras: se a altura é 21 e o raio é 20, a geratriz mede...", a: "29" },
+            { id: 36, q: "O corte horizontal paralelo à base que ocorre ao longo da altura do cone gera uma...", a: "Secção Transversal" },
+            { id: 37, q: "Qual a Área da Base (π·r²) de um cone de raio r=10?", a: "100π" },
+            { id: 38, q: "Qual o Volume de um cone com raio r=3 e altura h=10?", a: "30π" },
+            { id: 39, q: "Qual o Volume de um cone com raio r=6 e altura h=2?", a: "24π" },
+            { id: 40, q: "Calcule a Área Lateral de um cone se o raio for 5 e a geratriz for 5.", a: "25π" },
+            { id: 41, q: "Se o raio for 2 e a geratriz for 11, qual a Área Lateral do cone?", a: "22π" },
+            { id: 42, q: "Qual deve ser a altura de um cone para que, com raio r=3, seu Volume seja 33π?", a: "11" },
+            { id: 43, q: "Qual deve ser o raio de um cone para que, com altura h=4, seu Volume seja 12π?", a: "3" },
+            { id: 44, q: "Se a altura de um cone triplicar (e o raio ficar igual), o que acontece com o Volume total?", a: "Triplica" },
+            { id: 45, q: "Se r=5 e h=12, quanto mede a geratriz calculada por Pitágoras?", a: "13" },
+            { id: 46, q: "Qual o Volume de um cone com raio r=2 e altura h=21?", a: "28π" },
+            { id: 47, q: "Qual a Área da Base de um cone cujo raio é r=8?", a: "64π" },
+            { id: 48, q: "Qual a Área da Base de um cone com raio medindo r=1?", a: "1π" },
+            { id: 49, q: "Calcule o Volume de um cone sabendo que seu raio é r=4 e sua altura é h=6.", a: "32π" },
+            { id: 50, q: "Qual a Área Total de um cone que tem raio r=3 e geratriz g=8?", a: "33π" },
+            { id: 51, q: "Se um cone equilátero tem raio r=6, sua geratriz vale o dobro, que é...", a: "12" },
+            { id: 52, q: "Qual a altura exata de um cone equilátero de raio r=2? (Dica: Pitágoras)", a: "2√3" },
+            { id: 53, q: "Qual o Volume de um cone com raio r=3 e altura medindo h = 3√3?", a: "9π√3" },
+            { id: 54, q: "Se girarmos um SEMICÍRCULO em torno do seu diâmetro, formamos o sólido espacial chamado:", a: "Esfera" },
+            { id: 55, q: "Se girarmos um RETÂNGULO em torno de um dos seus lados, formamos o sólido chamado:", a: "Cilindro" },
+            { id: 56, q: "Qual o ângulo do setor circular gerado ao planificar um cone com r=3 e g=12?", a: "90°" },
+            { id: 57, q: "Se a secção meridiana de um cone é um triângulo isósceles retângulo, qual é a relação geométrica verdadeira?", a: "h = r" },
+            { id: 58, q: "Num cone onde a altura é igual ao raio (h = r), a geratriz vale...", a: "r√2" },
+            { id: 59, q: "Para que o Volume de um cone seja igual a cinco vezes a sua área da base (V = 5·Ab), a altura deve ser...", a: "15" }
+        ];
 
-// ===== MSG =====
-let _mt=null;
-function showMsg(txt,col,dur=1300){
- elMsg.innerHTML=txt.replace('\n','<br>');
- elMsg.style.color=col;
- elMsg.style.opacity='1';
- clearTimeout(_mt);
- _mt=setTimeout(()=>{elMsg.style.opacity='0';},dur);
-}
+        let drawnIndices = [];
+        const TOTAL_POOL_SIZE = BINGO_DATABASE.length;
+        const ITEMS_PER_CARD = 24; // 24 itens matemáticos + 1 espaço curinga central (total 25)
 
-// ===== SPAWN =====
-const TYPES=['portal_r_up','portal_r_dn','portal_h_up','portal_h_dn','tunnel','block'];
-const WGTS =[        15,          15,          15,          15,       30,      10];
-function pickType(){
- const tot=WGTS.reduce((a,b)=>a+b,0);
- let rnd=Math.random()*tot;
- for(let i=0;i<TYPES.length;i++){rnd-=WGTS[i];if(rnd<=0)return TYPES[i];}
- return 'tunnel';
-}
-function spawnObs(){
- const busy=GS.obs.filter(o=>o.y>-100&&o.y<H()*0.65).map(o=>o.lane);
- let lane,tries=0;
- do{lane=Math.floor(Math.random()*3);tries++;}while(busy.includes(lane)&&tries<9);
- GS.obs.push(new Obstacle(lane,pickType(),GS.speed));
-}
+        // =========================================================================
+        // ALGORITMO DETERMINÍSTICO (Garante o conferidor infalível)
+        // =========================================================================
+        function generateIndicesForCard(cardId, poolSize, sampleSize) {
+            let indices = Array.from({ length: poolSize }, (_, i) => i);
+            let seed = cardId * 1543; 
 
-// ===== BG =====
-function drawBG(){
- ctx.clearRect(0,0,W(),H());
- const bg=ctx.createLinearGradient(0,0,0,H());
- bg.addColorStop(0,'#010215');bg.addColorStop(0.55,'#020522');bg.addColorStop(1,'#010115');
- ctx.fillStyle=bg;ctx.fillRect(0,0,W(),H());
- ctx.save();
- // divisores
- ctx.strokeStyle='rgba(0,255,255,0.08)';ctx.lineWidth=1;
- for(let i=1;i<3;i++){
-  ctx.beginPath();ctx.moveTo(i*LW(),0);ctx.lineTo(i*LW(),H());ctx.stroke();
- }
- // linhas de velocidade
- ctx.strokeStyle='rgba(0,120,255,0.1)';ctx.lineWidth=1;
- const step=52;
- for(let y=(GS.bgOff%step)-step;y<H()+step;y+=step){
-  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W(),y+5);ctx.stroke();
- }
- // estrelas
- ctx.fillStyle='rgba(190,210,255,0.42)';
- for(let i=0;i<75;i++){
-  ctx.fillRect(((i*163+GS.bgOff*0.22)%W()),((i*97+GS.bgOff*0.07)%H()),1.2,1.2);
- }
- ctx.restore();
- // linha do chao
- ctx.save();
- ctx.strokeStyle='rgba(0,255,255,0.32)';ctx.lineWidth=2;
- ctx.shadowColor='#0ff';ctx.shadowBlur=8;
- ctx.beginPath();ctx.moveTo(0,H()-36);ctx.lineTo(W(),H()-36);ctx.stroke();
- ctx.restore();
-}
+            for (let i = indices.length - 1; i > 0; i--) {
+                let r = Math.sin(seed++) * 10000;
+                let randomFloat = r - Math.floor(r);
+                let j = Math.floor(randomFloat * (i + 1));
+                
+                let temp = indices[i];
+                indices[i] = indices[j];
+                indices[j] = temp;
+            }
+            return indices.slice(0, sampleSize).sort((a, b) => a - b);
+        }
 
-// ===== HUD =====
-function hudUpdate(){
- const c=GS.cone;
- elR.textContent=c.r.toFixed(1);elH.textContent=c.h.toFixed(1);
- elG.textContent=c.g.toFixed(1);elV.textContent=Math.round(c.vol);
- elS.textContent=Math.floor(GS.score);
-}
+        // =========================================================================
+        // GERENCIAMENTO DE ABAS E INTERFACE
+        // =========================================================================
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if(tab === 'sorteio') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('panel-sorteio').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('panel-cartelas').classList.add('active');
+                renderAllCards();
+            }
+        }
 
-// ===== INPUT =====
-window.addEventListener('keydown',e=>{
- if(!GS.running)return;
- if(e.code==='ArrowLeft'||e.code==='KeyA'||e.code==='KeyQ'){
-  GS.cone.setLane(GS.cone.lane-1);e.preventDefault();
- }
- if(e.code==='ArrowRight'||e.code==='KeyD'){
-  GS.cone.setLane(GS.cone.lane+1);e.preventDefault();
- }
- if(e.code==='Space')e.preventDefault();
-});
+        // =========================================================================
+        // MOTOR DE SORTEIO E CONTROLE DE RESPOSTAS
+        // =========================================================================
+        function drawItem() {
+            if (drawnIndices.length >= TOTAL_POOL_SIZE) {
+                alert("Todos os itens já foram sorteados!");
+                return;
+            }
 
-// swipe mobile
-let tx=null;
-cv.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
-cv.addEventListener('touchend',e=>{
- if(tx===null||!GS.running)return;
- const dx=e.changedTouches[0].clientX-tx;
- if(dx<-28)GS.cone.setLane(GS.cone.lane-1);
- else if(dx>28)GS.cone.setLane(GS.cone.lane+1);
- tx=null;
-},{passive:true});
+            let availableIndices = [];
+            for (let i = 0; i < TOTAL_POOL_SIZE; i++) {
+                if (!drawnIndices.includes(i)) availableIndices.push(i);
+            }
 
-// ===== LOOP =====
-function update(dt){
- const gs=GS,cone=gs.cone,f=dt/16.67;
- gs.bgOff+=gs.speed*f*2;
- gs.speed=3.6+gs.score/9000;
- gs.spawnEvery=Math.max(880,1500-gs.score/14);
- gs.score+=gs.speed*f*0.85;
- gs.spawnTimer+=dt;
- if(gs.spawnTimer>=gs.spawnEvery){spawnObs();gs.spawnTimer=0;}
- for(let i=gs.obs.length-1;i>=0;i--){
-  const o=gs.obs[i];
-  o.spd=gs.speed;o.update(dt);
-  if(o.isOff()){gs.obs.splice(i,1);continue;}
-  const ch=cone.hitbox();
-  if(o.type==='block'){
-   if(cone.invTimer<=0&&hit2(ch,{x:o.x,y:o.y,w:o.w,h:o.h})){
-    gs.loseLife(cone);gs.obs.splice(i,1);
-   }
-  }else if(o.type==='tunnel'){
-   if(!o.done&&cone.py>=o.y+o.h*0.52&&cone.py<=o.y+o.h*0.88){
-    if(Math.abs(cone.px-o.cx)<o.w*0.44)o.apply(cone,gs);
-   }
-  }else{
-   if(!o.done&&hit2(ch,{x:o.x+o.w*0.08,y:o.y+o.h*0.28,w:o.w*0.84,h:o.h*0.44})){
-    o.apply(cone,gs);
-   }
-  }
- }
- cone.update(dt);
- hudUpdate();
- tickParts(dt);
-}
+            let randomIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+            drawnIndices.push(randomIndex);
 
-function render(){
- drawBG();
- GS.obs.forEach(o=>o.draw());
- drawParts();
- GS.cone.draw();
-}
+            const item = BINGO_DATABASE[randomIndex];
+            
+            // Atualiza os textos na tela
+            document.getElementById('draw-count').innerText = `Sorteio Nº ${drawnIndices.length} de ${TOTAL_POOL_SIZE}`;
+            document.getElementById('draw-question').innerText = item.q;
+            
+            // Reseta a área de revelação da resposta para o estado oculto
+            document.getElementById('answer-container').style.display = 'flex';
+            document.getElementById('draw-answer').innerText = `Gabarito: ${item.a}`;
+            document.getElementById('draw-answer').style.display = 'none';
+            
+            const btnReveal = document.getElementById('btn-reveal');
+            btnReveal.innerHTML = '👁️ Revelar Resposta aos Alunos';
+            btnReveal.style.backgroundColor = 'transparent';
+            btnReveal.style.color = '#fff';
 
-function loop(ts){
- if(!GS.running)return;
- if(!GS.lastTime)GS.lastTime=ts;
- const dt=Math.min(ts-GS.lastTime,50);
- GS.lastTime=ts;
- update(dt);render();
- requestAnimationFrame(loop);
-}
+            // Atualiza painéis auxiliares
+            document.getElementById('remaining-count').innerText = TOTAL_POOL_SIZE - drawnIndices.length;
+            renderGeneralHistoryBoard();
+            
+            if(document.getElementById('check-card-id').value !== "") {
+                validateCard();
+            }
+        }
 
-document.getElementById('startBtn').addEventListener('click',()=>{
- elStart.style.display='none';
- GS.reset();
- requestAnimationFrame(loop);
-});
-document.getElementById('restartBtn').addEventListener('click',()=>{
- elOver.style.display='none';
- GS.reset();
- requestAnimationFrame(loop);
-});
-window.addEventListener('resize',()=>{
- if(GS.running){
-  resizeCanvas();
-  GS.cone.px=LW()*(GS.cone.lane+0.5);
-  GS.cone.targetX=GS.cone.px;
-  GS.obs.forEach(o=>{o.cx=LW()*(o.lane+0.5);o.w=LW()*0.76;});
- }
-});
-</script>
+        function toggleAnswer() {
+            const ansText = document.getElementById('draw-answer');
+            const btnReveal = document.getElementById('btn-reveal');
+
+            if(ansText.style.display === 'none') {
+                ansText.style.display = 'block';
+                btnReveal.innerHTML = '🙈 Ocultar Resposta';
+                btnReveal.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                btnReveal.style.color = '#ccc';
+            } else {
+                ansText.style.display = 'none';
+                btnReveal.innerHTML = '👁️ Revelar Resposta aos Alunos';
+                btnReveal.style.backgroundColor = 'transparent';
+                btnReveal.style.color = '#fff';
+            }
+        }
+
+        function resetGame() {
+            if(confirm("Deseja realmente reiniciar o sorteio? O histórico será limpo.")) {
+                drawnIndices = [];
+                document.getElementById('draw-count').innerText = "Nenhum item sorteado";
+                document.getElementById('draw-question').innerText = "Clique em 'Sortear Próximo Item' para iniciar.";
+                document.getElementById('answer-container').style.display = 'none';
+                document.getElementById('remaining-count').innerText = TOTAL_POOL_SIZE;
+                document.getElementById('checker-result').style.display = 'none';
+                document.getElementById('check-card-id').value = "";
+                renderGeneralHistoryBoard();
+            }
+        }
+
+        function renderGeneralHistoryBoard() {
+            const grid = document.getElementById('history-grid');
+            grid.innerHTML = "";
+            
+            BINGO_DATABASE.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                div.innerText = item.a; 
+                if(drawnIndices.includes(item.id)) {
+                    div.className += ' drawn';
+                }
+                grid.appendChild(div);
+            });
+        }
+
+        // =========================================================================
+        // VALIDADOR 5x5
+        // =========================================================================
+        function validateCard() {
+            const cardIdInput = document.getElementById('check-card-id').value;
+            if(!cardIdInput || cardIdInput < 1) {
+                alert("Por favor, insira um código válido da cartela.");
+                return;
+            }
+
+            const cardId = parseInt(cardIdInput);
+            const cardIndices = generateIndicesForCard(cardId, TOTAL_POOL_SIZE, ITEMS_PER_CARD);
+            
+            const resultBox = document.getElementById('checker-result');
+            const statusHeader = document.getElementById('checker-status');
+            const grid = document.getElementById('checker-grid');
+            
+            grid.innerHTML = "";
+            resultBox.style.display = 'block';
+
+            let matchCount = 0;
+            let itemIndex = 0;
+
+            for(let i = 0; i < 25; i++) {
+                const cell = document.createElement('div');
+                
+                // Espaço central do Curinga
+                if(i === 12) {
+                    cell.className = 'checker-cell matched';
+                    cell.innerText = '⭐ BÓNUS';
+                    grid.appendChild(cell);
+                    continue;
+                }
+
+                const idx = cardIndices[itemIndex];
+                const item = BINGO_DATABASE[idx];
+                cell.className = 'checker-cell';
+                cell.innerText = item.a;
+
+                if(drawnIndices.includes(idx)) {
+                    cell.className += ' matched';
+                    matchCount++;
+                } else {
+                    cell.className += ' missing';
+                }
+                grid.appendChild(cell);
+                itemIndex++;
+            }
+
+            if(matchCount === ITEMS_PER_CARD) {
+                statusHeader.innerText = `🔥 CARTELA #${cardId}: BINGO COMPLETO! 🔥`;
+                statusHeader.style.color = 'var(--success)';
+            } else {
+                statusHeader.innerText = `📊 CARTELA #${cardId}: ${matchCount} / ${ITEMS_PER_CARD} ACERTOS`;
+                statusHeader.style.color = 'var(--white)';
+            }
+        }
+
+        // =========================================================================
+        // GERAÇÃO DAS CARTELAS PARA IMPRESSÃO (MATRIZ 5x5)
+        // =========================================================================
+        function renderAllCards() {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = "";
+            
+            const quantity = parseInt(document.getElementById('print-quantity').value) || 25;
+
+            for(let cardId = 1; cardId <= quantity; cardId++) {
+                const cardIndices = generateIndicesForCard(cardId, TOTAL_POOL_SIZE, ITEMS_PER_CARD);
+                
+                const cardElement = document.createElement('div');
+                cardElement.className = 'bingo-card';
+                
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'card-header';
+                headerDiv.innerHTML = `
+                    <div class="card-title">BINGO: CONES</div>
+                    <div class="card-id">CÓD: ${String(cardId).padStart(3, '0')}</div>
+                `;
+                cardElement.appendChild(headerDiv);
+
+                const gridDiv = document.createElement('div');
+                gridDiv.className = 'card-grid';
+                
+                let itemIndex = 0;
+                for(let i = 0; i < 25; i++) {
+                    const cellDiv = document.createElement('div');
+                    cellDiv.className = 'card-cell';
+                    
+                    if(i === 12) {
+                        cellDiv.innerText = '⭐ CURINGA';
+                        cellDiv.style.backgroundColor = '#f0f0f0'; // Destaque visual cinza leve no papel
+                    } else {
+                        const item = BINGO_DATABASE[cardIndices[itemIndex]];
+                        cellDiv.innerText = item.a;
+                        itemIndex++;
+                    }
+                    
+                    gridDiv.appendChild(cellDiv);
+                }
+                
+                cardElement.appendChild(gridDiv);
+
+                const footerDiv = document.createElement('div');
+                footerDiv.className = 'card-footer-info';
+                footerDiv.innerText = "Ouça o desafio lógico/geométrico e marque o termo correspondente.";
+                cardElement.appendChild(footerDiv);
+
+                container.appendChild(cardElement);
+            }
+        }
+
+        window.onload = function() {
+            renderGeneralHistoryBoard();
+            document.getElementById('print-quantity').addEventListener('change', renderAllCards);
+        };
+    </script>
 </body>
 </html>
