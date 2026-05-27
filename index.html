@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cone Runner: Missao de Estabilidade</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#02040b;color:#fff;font-family:'Courier New',monospace;overflow:hidden;user-select:none}
+#gc{position:relative;width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+canvas{background:linear-gradient(180deg,#02040b 0%,#04081a 60%,#020308 100%);border:2px solid #0ff;box-shadow:0 0 30px #0ff8,0 0 60px #0ff3;border-radius:4px}
+#hud{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;gap:12px;padding:6px 14px;background:rgba(0,0,0,.75);border-radius:8px;border:1px solid #0ff;font-size:13px;white-space:nowrap}
+.hi{min-width:80px;color:#0ff;text-shadow:0 0 6px #0ff}
+.hi span{color:#fff}
+#mission{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);padding:6px 16px;background:rgba(0,0,0,.8);border-radius:8px;border:1px solid #f0f;font-size:13px;color:#f0f;text-shadow:0 0 6px #f0f;text-align:center;max-width:90vw}
+#feedback{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;font-weight:bold;pointer-events:none;opacity:0;transition:opacity .3s;text-shadow:0 0 20px currentColor}
+#startScreen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#05103a 0%,#010208 70%);gap:10px}
+#startScreen h1{font-size:36px;color:#0ff;text-shadow:0 0 20px #0ff,0 0 40px #0ff5;letter-spacing:4px}
+#startScreen h2{font-size:16px;color:#f0f;text-shadow:0 0 10px #f0f;letter-spacing:2px;margin-bottom:8px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:13px;color:#adf;max-width:380px}
+.controls b{color:#0ff}
+#startBtn{margin-top:14px;padding:10px 28px;border-radius:8px;border:2px solid #0ff;background:linear-gradient(135deg,#001a2e,#003a5e);color:#0ff;font-weight:bold;font-size:16px;cursor:pointer;letter-spacing:2px;text-shadow:0 0 8px #0ff;box-shadow:0 0 16px #0ff6;transition:all .2s}
+#startBtn:hover{background:linear-gradient(135deg,#003a5e,#005a8e);box-shadow:0 0 28px #0ff}
+#gameOver{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.85);gap:12px}
+#gameOver h1{font-size:40px;color:#f00;text-shadow:0 0 20px #f00}
+#gameOver p{font-size:18px;color:#fff}
+#restartBtn{padding:10px 24px;border-radius:8px;border:2px solid #0ff;background:linear-gradient(135deg,#001a2e,#003a5e);color:#0ff;font-size:15px;cursor:pointer;letter-spacing:2px}
+</style>
+</head>
+<body>
+<div id="gc">
+<canvas id="cv" width="900" height="500"></canvas>
+<div id="hud">
+<div class="hi">r: <span id="hR">10.0</span></div>
+<div class="hi">h: <span id="hH">20.0</span></div>
+<div class="hi">g: <span id="hG">22.4</span></div>
+<div class="hi">V: <span id="hV">2094</span></div>
+<div class="hi">Score: <span id="hS">0</span></div>
+<div class="hi">Combo: <span id="hC">x1</span></div>
+<div class="hi">Foco: <span id="hF">PRONTO</span></div>
+</div>
+<div id="mission">Missao: ajuste o cone para passar pelos portais!</div>
+<div id="feedback"></div>
+<div id="startScreen">
+<h1>CONE RUNNER</h1>
+<h2>MISSAO DE ESTABILIDADE</h2>
+<div class="controls">
+<div><b>seta cima</b> +altura (h)</div>
+<div><b>seta baixo</b> -raio (r)</div>
+<div><b>seta esq/dir</b> mudar pista</div>
+<div><b>espaco</b> modo foco</div>
+<div><b>A</b> +raio (r)</div>
+<div><b>Z</b> -altura (h)</div>
+</div>
+<button id="startBtn">INICIAR CORRIDA</button>
+</div>
+<div id="gameOver">
+<h1>FIM DE CORRIDA</h1>
+<p id="goScore">Score: 0</p>
+<p id="goMission">Missao: -</p>
+<button id="restartBtn">JOGAR NOVAMENTE</button>
+</div>
+</div>
+<script>
+// ========== CONSTANTES ==========
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const W=cv.width,H=cv.height;
+const LANES=3,LW=W/LANES;
+const hR=document.getElementById('hR'),hH=document.getElementById('hH'),hG=document.getElementById('hG'),hV=document.getElementById('hV'),hS=document.getElementById('hS'),hC=document.getElementById('hC'),hF=document.getElementById('hF');
+const missionEl=document.getElementById('mission');
+const feedbackEl=document.getElementById('feedback');
+const startScreen=document.getElementById('startScreen');
+const gameOverEl=document.getElementById('gameOver');
+
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function rects(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
+
+// ========== PARTICULAS ==========
+const particles=[];
+function spawnParticles(x,y,color,n=18){
+ for(let i=0;i<n;i++){
+  const ang=Math.random()*Math.PI*2;
+  const spd=1.5+Math.random()*4;
+  particles.push({x,y,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,life:1,color,size:2+Math.random()*4});
+ }
+}
+function updateParticles(dt){
+ for(let i=particles.length-1;i>=0;i--){
+  const p=particles[i];
+  p.x+=p.vx*(dt/16.67);p.y+=p.vy*(dt/16.67);
+  p.vy+=0.08*(dt/16.67);p.life-=0.022*(dt/16.67);
+  if(p.life<=0)particles.splice(i,1);
+ }
+}
+function drawParticles(){
+ particles.forEach(p=>{
+  ctx.save();ctx.globalAlpha=p.life;
+  ctx.shadowColor=p.color;ctx.shadowBlur=8;
+  ctx.fillStyle=p.color;
+  ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+ });
+}
+
+// ========== TRILHA NEON ==========
+const trail=[];
+function updateTrail(x,y){
+ trail.push({x,y,life:1});
+ if(trail.length>30)trail.shift();
+ trail.forEach(t=>t.life-=0.03);
+}
+function drawTrail(){
+ for(let i=1;i<trail.length;i++){
+  const t=trail[i],tp=trail[i-1];
+  ctx.save();ctx.globalAlpha=t.life*0.5;
+  ctx.strokeStyle='#0ff';ctx.lineWidth=3*t.life;
+  ctx.shadowColor='#0ff';ctx.shadowBlur=10;
+  ctx.beginPath();ctx.moveTo(tp.x,tp.y);ctx.lineTo(t.x,t.y);ctx.stroke();
+  ctx.restore();
+ }
+}
+
+// ========== CLASSE CONE PLAYER ==========
+class ConePlayer{
+ constructor(){
+  this.lane=1;
+  this.r=10;this.h=20;
+  this.g=Math.sqrt(this.r**2+this.h**2);
+  this.px=LW*1.5;this.py=H-60;
+  this.targetX=this.px;
+  this.score=0;this.combo=1;this.comboTimer=0;
+  this.scale=3;this.alive=true;
+  this.hitFlash=0;
+ }
+ get rPx(){return this.r*this.scale;}
+ get hPx(){return this.h*this.scale;}
+ updateG(){this.g=Math.sqrt(this.r**2+this.h**2);}
+ getVolume(){return (Math.PI*this.r**2*this.h)/3;}
+ getLateralArea(){return Math.PI*this.r*this.g;}
+ getHitbox(){return{x:this.px-this.rPx,y:this.py-this.hPx,w:this.rPx*2,h:this.hPx};}
+ incH(){this.h=clamp(this.h+1.5,4,44);this.updateG();}
+ decH(){this.h=clamp(this.h-1.5,4,44);this.updateG();}
+ incR(){this.r=clamp(this.r+1,3,28);this.updateG();}
+ decR(){this.r=clamp(this.r-1,3,28);this.updateG();}
+ setLane(l){
+  this.lane=clamp(l,0,LANES-1);
+  this.targetX=LW*(this.lane+0.5);
+ }
+ update(dt){
+  this.px+=(this.targetX-this.px)*0.12*(dt/16.67);
+  if(this.comboTimer>0){this.comboTimer-=dt;if(this.comboTimer<=0){this.combo=Math.max(1,this.combo-1);}}
+  if(this.hitFlash>0)this.hitFlash-=dt;
+ }
+ draw(){
+  const x=this.px,y=this.py;
+  const rp=this.rPx,hp=this.hPx;
+  ctx.save();
+  // trilha
+  updateTrail(x,y-hp*0.3);
+  drawTrail();
+  // flash de dano
+  if(this.hitFlash>0){
+   ctx.globalAlpha=0.5+0.5*Math.sin(this.hitFlash*0.05);
+  }
+  // sombra no chao
+  ctx.save();
+  ctx.globalAlpha=0.2;ctx.fillStyle='#0ff';
+  ctx.beginPath();ctx.ellipse(x,y,rp,rp*0.25,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  // corpo do cone
+  const grad=ctx.createLinearGradient(x,y-hp,x,y);
+  grad.addColorStop(0,'#fff');grad.addColorStop(0.2,'#0ff');
+  grad.addColorStop(0.7,'#08f');grad.addColorStop(1,'#003366');
+  ctx.shadowColor='#0ff';ctx.shadowBlur=18;
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.moveTo(x,y-hp);ctx.lineTo(x-rp,y);ctx.lineTo(x+rp,y);ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();
+  // geratriz destacada
+  ctx.save();
+  ctx.strokeStyle='rgba(0,255,255,0.4)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(x,y-hp);ctx.lineTo(x+rp,y);ctx.stroke();
+  ctx.restore();
+  // base eliptica
+  ctx.beginPath();ctx.ellipse(x,y,rp,rp*0.3,0,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,200,255,0.35)';ctx.fill();
+  ctx.strokeStyle='#0ff';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.restore();
+ }
+}
+
+// ========== MISSOES ==========
+const MISSIONS=[
+ {id:'vol_up', desc:'Aumente o volume! (V > 3000)', check:(p)=>p.getVolume()>3000, reward:500},
+ {id:'g_const', desc:'Mantenha a geratriz ~constante (g entre 20-26)', check:(p)=>p.g>=20&&p.g<=26, reward:400},
+ {id:'thin',   desc:'Cone fino: h > 30 e r < 8', check:(p)=>p.h>30&&p.r<8, reward:450},
+ {id:'wide',   desc:'Cone largo: r > 20 e h < 12', check:(p)=>p.r>20&&p.h<12, reward:450},
+ {id:'equi',   desc:'Cone equilatero: g ~= 2r (tolerancia 2)', check:(p)=>Math.abs(p.g-2*p.r)<2, reward:600},
+ {id:'prop',   desc:'Proporcional: r/h entre 0.45 e 0.55', check:(p)=>{const ratio=p.r/p.h;return ratio>=0.45&&ratio<=0.55;}, reward:350},
+];
+let currentMission=MISSIONS[0];
+let missionDone=false;
+let missionTimer=0;
+const MISSION_DURATION=18000;
+
+function nextMission(){
+ const idx=Math.floor(Math.random()*MISSIONS.length);
+ currentMission=MISSIONS[idx];
+ missionDone=false;missionTimer=0;
+ missionEl.textContent='Missao: '+currentMission.desc;
+}
+nextMission();
+
+function checkMission(player){
+ if(missionDone)return;
+ if(currentMission.check(player)){
+  missionDone=true;
+  player.score+=currentMission.reward;
+  player.combo=Math.min(player.combo+2,8);
+  player.comboTimer=5000;
+  showFeedback('MISSAO CUMPRIDA! +'+currentMission.reward,'#0f0');
+  spawnParticles(player.px,player.py-player.hPx*0.5,'#0f0',30);
+  setTimeout(nextMission,2500);
+ }
+}
+
+function showFeedback(msg,color,dur=1500){
+ feedbackEl.textContent=msg;
+ feedbackEl.style.color=color;
+ feedbackEl.style.opacity='1';
+ clearTimeout(feedbackEl._t);
+ feedbackEl._t=setTimeout(()=>{feedbackEl.style.opacity='0';},dur);
+}
+
+// ========== CLASSE PORTAL / OBSTACULO ==========
+class Portal{
+ constructor(lane,type){
+  this.lane=lane;
+  this.type=type;
+  this.w=LW*0.72;
+  // tipos: '+r','+h','-r','-h','gfix','tunnel','block'
+  this.hgt=(type==='tunnel'||type==='block')?200:160;
+  this.x=LW*(lane+0.5)-this.w/2;
+  this.y=-this.hgt-10;
+  this.speed=gameSpeed;
+  this.triggered=false;
+  this.passed=false;
+  // Para tuneis: shadow cone alvo
+  if(type==='tunnel'||type==='block'){
+   this.targetR=6+Math.random()*14;
+   this.targetH=10+Math.random()*26;
+   this.targetG=Math.sqrt(this.targetR**2+this.targetH**2);
+   this.tolerance=3;
+  }
+ }
+ update(dt){
+  this.y+=this.speed*(dt/16.67);
+ }
+ isOff(){return this.y>H+50;}
+ getHitbox(){return{x:this.x,y:this.y,w:this.w,h:this.hgt};}
+ getPassZone(){return{x:this.x+4,y:this.y+this.hgt*0.3,w:this.w-8,h:this.hgt*0.5};}
+
+ applyEffect(player){
+  if(this.triggered)return;
+  this.triggered=true;
+  let msg='';let color='#0ff';
+  switch(this.type){
+   case '+r': player.incR();player.incR();msg='+raio!';color='#0f8';break;
+   case '+h': player.incH();player.incH();msg='+altura!';color='#08f';break;
+   case '-r': player.decR();player.decR();msg='-raio';color='#ff0';break;
+   case '-h': player.decH();player.decH();msg='-altura';color='#fa0';break;
+   case 'gfix':
+    // trava: r e h se ajustam para manter g=atual, aumentando h
+    const savedG=player.g;
+    player.incH();player.incH();
+    player.r=clamp(Math.sqrt(Math.max(0,savedG**2-player.h**2)),3,28);
+    player.updateG();
+    msg='g FIXA!';color='#f0f';break;
+   case 'tunnel':
+    this.checkTunnelFit(player);return;
+   case 'block':
+    // obstaculo sólido: colisao negativa
+    player.hitFlash=600;
+    player.score=Math.max(0,player.score-200);
+    player.combo=1;
+    msg='-200 COLISAO!';color='#f00';
+    spawnParticles(player.px,player.py-player.hPx*0.5,'#f00',20);
+    break;
+  }
+  if(msg){
+   showFeedback(msg,color);
+   if(this.type!=='block')spawnParticles(LW*(this.lane+0.5),this.y+this.hgt*0.5,color,14);
+  }
+  player.combo=Math.min(player.combo+1,8);
+  player.comboTimer=4000;
+ }
+
+ checkTunnelFit(player){
+  if(this.triggered)return;
+  this.triggered=true;
+  const dr=Math.abs(player.r-this.targetR);
+  const dh=Math.abs(player.h-this.targetH);
+  if(dr<=this.tolerance&&dh<=this.tolerance){
+   const bonus=400+Math.floor((this.tolerance-Math.max(dr,dh))*100);
+   player.score+=bonus;
+   player.combo=Math.min(player.combo+3,8);
+   player.comboTimer=5000;
+   showFeedback('ENCAIXE PERFEITO! +'+bonus,'#0ff');
+   spawnParticles(LW*(this.lane+0.5),this.y+this.hgt*0.5,'#0ff',40);
+  } else {
+   player.hitFlash=500;
+   player.score=Math.max(0,player.score-150);
+   player.combo=1;
+   const hint=dr>dh?(dr>0?'r muito '+(player.r>this.targetR?'grande':'pequeno'):''):(dh>0?'h muito '+(player.h>this.targetH?'grande':'pequena'):'');
+   showFeedback('NAO ENCAIXOU! '+hint,'#f80',2000);
+   spawnParticles(player.px,player.py-player.hPx*0.5,'#f80',16);
+  }
+ }
+
+ draw(){
+  ctx.save();
+  const cx=this.x+this.w/2;
+  const colors={'+r':'#0f8','+h':'#08f','-r':'#ff0','-h':'#fa0','gfix':'#f0f','tunnel':'#0ff','block':'#f44'};
+  const c=colors[this.type]||'#fff';
+
+  if(this.type==='block'){
+   // Obstaculo solido
+   ctx.shadowColor='#f44';ctx.shadowBlur=20;
+   ctx.fillStyle='rgba(180,20,20,0.7)';
+   ctx.fillRect(this.x,this.y,this.w,this.hgt);
+   ctx.strokeStyle='#f44';ctx.lineWidth=3;
+   ctx.strokeRect(this.x,this.y,this.w,this.hgt);
+   ctx.fillStyle='#f44';ctx.font='bold 16px Courier New';ctx.textAlign='center';
+   ctx.fillText('BLOCO',cx,this.y+this.hgt*0.5);
+  } else if(this.type==='tunnel'){
+   // Tunel com sombra de cone alvo
+   const tR=this.targetR*3,tH=this.targetH*3;
+   ctx.shadowColor=c;ctx.shadowBlur=16;
+   ctx.strokeStyle=c;ctx.lineWidth=3;
+   ctx.strokeRect(this.x,this.y,this.w,this.hgt);
+   // moldura dupla
+   ctx.globalAlpha=0.3;ctx.fillStyle=c;
+   ctx.fillRect(this.x,this.y,this.w,8);
+   ctx.fillRect(this.x,this.y+this.hgt-8,this.w,8);
+   ctx.globalAlpha=1;
+   // sombra do cone alvo (silhueta)
+   const sy=this.y+this.hgt*0.82;
+   ctx.globalAlpha=0.35;
+   ctx.fillStyle=c;
+   ctx.beginPath();ctx.moveTo(cx,sy-tH);ctx.lineTo(cx-tR,sy);ctx.lineTo(cx+tR,sy);ctx.closePath();ctx.fill();
+   ctx.beginPath();ctx.ellipse(cx,sy,tR,tR*0.3,0,0,Math.PI*2);ctx.fill();
+   ctx.globalAlpha=1;
+   // label
+   ctx.fillStyle=c;ctx.font='bold 11px Courier New';ctx.textAlign='center';
+   ctx.fillText('TUNEL  r='+this.targetR.toFixed(1)+' h='+this.targetH.toFixed(1),cx,this.y+18);
+   ctx.fillText('g='+this.targetG.toFixed(1),cx,this.y+34);
+  } else {
+   // Portal de transformacao
+   ctx.shadowColor=c;ctx.shadowBlur=20;
+   ctx.strokeStyle=c;ctx.lineWidth=2.5;
+   const grad=ctx.createLinearGradient(this.x,this.y,this.x,this.y+this.hgt);
+   grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(0.5,'rgba('+hexToRgb(c)+',0.15)');grad.addColorStop(1,'rgba(0,0,0,0)');
+   ctx.fillStyle=grad;ctx.fillRect(this.x,this.y,this.w,this.hgt);
+   ctx.strokeRect(this.x,this.y,this.w,this.hgt);
+   const labels={'+r':'+r  +raio','+h':'+h  +altura','-r':'-r  -raio','-h':'-h  -altura','gfix':'g  FIXA'};
+   ctx.fillStyle=c;ctx.font='bold 20px Courier New';ctx.textAlign='center';
+   ctx.fillText(labels[this.type]||this.type,cx,this.y+this.hgt*0.5);
+  }
+  ctx.restore();
+ }
+}
+
+function hexToRgb(hex){
+ const r=parseInt(hex.slice(1,3)||'0',16)||0;
+ const g=parseInt(hex.slice(3,5)||'0',16)||0;
+ const b=parseInt(hex.slice(5,7)||'0',16)||0;
+ if(hex==='#0f8')return '0,255,136';
+ if(hex==='#08f')return '0,136,255';
+ if(hex==='#ff0')return '255,255,0';
+ if(hex==='#fa0')return '255,170,0';
+ if(hex==='#f0f')return '255,0,255';
+ if(hex==='#0ff')return '0,255,255';
+ return r+','+g+','+b;
+}
+
+// ========== ESTADO DO JOGO ==========
+let player=new ConePlayer();
+const portals=[];
+let gameSpeed=4;
+let baseSpeed=4;
+let running=false;
+let lastTime=0;
+let bgOffset=0;
+let spawnTimer=0;
+let spawnInterval=1600;
+let focusActive=false;
+let focusTimer=0;
+const FOCUS_MAX=3500;
+let boostActive=false;
+let boostTimer=0;
+
+// ========== INPUT ==========
+const keys={};
+window.addEventListener('keydown',e=>{
+ if(!running)return;
+ keys[e.code]=true;
+ if(e.code==='ArrowLeft'){player.setLane(player.lane-1);e.preventDefault();}
+ if(e.code==='ArrowRight'){player.setLane(player.lane+1);e.preventDefault();}
+ if(e.code==='ArrowUp'){player.incH();e.preventDefault();}
+ if(e.code==='ArrowDown'){player.decR();e.preventDefault();}
+ if(e.code==='KeyA'){player.incR();}
+ if(e.code==='KeyZ'){player.decH();}
+ if(e.code==='Space'&&!focusActive&&focusTimer<=0){
+  focusActive=true;focusTimer=FOCUS_MAX;
+  gameSpeed=baseSpeed*0.35;
+  showFeedback('MODO FOCO','#f0f',FOCUS_MAX);
+  e.preventDefault();
+ }
+});
+window.addEventListener('keyup',e=>{keys[e.code]=false;});
+
+// ========== SPAWN ==========
+const portalTypes=['+r','+h','-r','-h','gfix','tunnel','block'];
+const portalWeights=[15,15,10,10,10,25,15];
+function weightedRandom(){
+ const total=portalWeights.reduce((a,b)=>a+b,0);
+ let rnd=Math.random()*total;
+ for(let i=0;i<portalTypes.length;i++){rnd-=portalWeights[i];if(rnd<=0)return portalTypes[i];}
+ return portalTypes[0];
+}
+function spawnPortal(){
+ const occupiedLanes=portals.filter(p=>p.y<H&&p.y>-200).map(p=>p.lane);
+ let lane;
+ let tries=0;
+ do{lane=Math.floor(Math.random()*LANES);tries++;}while(occupiedLanes.includes(lane)&&tries<10);
+ const type=weightedRandom();
+ portals.push(new Portal(lane,type));
+}
+
+// ========== BACKGROUND ==========
+function drawBackground(){
+ // Chao de grade
+ ctx.clearRect(0,0,W,H);
+ // Gradiente de fundo
+ const bg=ctx.createLinearGradient(0,0,0,H);
+ bg.addColorStop(0,'#010210');bg.addColorStop(0.6,'#020520');bg.addColorStop(1,'#010112');
+ ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+ // Linhas de pista (perspectiva)
+ ctx.save();
+ ctx.strokeStyle='rgba(0,255,255,0.12)';ctx.lineWidth=1;
+ for(let i=0;i<=LANES;i++){
+  const x=i*LW;
+  ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
+ }
+ // Linhas horizontais animadas (efeito corrida)
+ ctx.strokeStyle='rgba(0,100,200,0.15)';ctx.lineWidth=1;
+ const step=50;
+ for(let y=(bgOffset%step)-step;y<H+step;y+=step){
+  ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+ }
+ // Pontos de estrelas
+ ctx.fillStyle='rgba(255,255,255,0.4)';
+ for(let i=0;i<60;i++){
+  const sx=((i*173+bgOffset*0.3)%W);
+  const sy=((i*97+bgOffset*0.1)%H);
+  ctx.fillRect(sx,sy,1,1);
+ }
+ ctx.restore();
+
+ // Linha do "chao"
+ ctx.save();
+ ctx.strokeStyle='rgba(0,255,255,0.4)';ctx.lineWidth=2;
+ ctx.shadowColor='#0ff';ctx.shadowBlur=8;
+ ctx.beginPath();ctx.moveTo(0,H-40);ctx.lineTo(W,H-40);ctx.stroke();
+ ctx.restore();
+}
+
+// ========== HUD UPDATE ==========
+function updateHUD(){
+ hR.textContent=player.r.toFixed(1);
+ hH.textContent=player.h.toFixed(1);
+ hG.textContent=player.g.toFixed(1);
+ hV.textContent=Math.round(player.getVolume());
+ hS.textContent=Math.floor(player.score);
+ hC.textContent='x'+player.combo;
+ if(focusActive){
+  const pct=Math.round((focusTimer/FOCUS_MAX)*100);
+  hF.textContent='FOCO '+pct+'%';
+  hF.style.color='#f0f';
+ }else if(focusTimer>0){
+  hF.textContent='CARREGANDO';
+  hF.style.color='#888';
+ }else{
+  hF.textContent='PRONTO';
+  hF.style.color='#0ff';
+ }
+}
+
+// ========== UPDATE ==========
+function update(dt){
+ bgOffset+=gameSpeed*(dt/16.67)*2;
+
+ // Foco
+ if(focusActive){
+  focusTimer-=dt;
+  if(focusTimer<=0){focusActive=false;gameSpeed=baseSpeed;hF.style.color='#888';}
+ } else if(focusTimer>0){
+  focusTimer-=dt*0.4;
+  if(focusTimer<=0)focusTimer=0;
+ }
+
+ // Boost de velocidade ao combo alto
+ if(player.combo>=5&&!boostActive){
+  boostActive=true;boostTimer=3000;
+  baseSpeed=5.5;
+  showFeedback('BOOST x'+player.combo+'!','#ff0',1200);
+ }
+ if(boostActive){boostTimer-=dt;if(boostTimer<=0){boostActive=false;baseSpeed=4;}}
+ if(!focusActive)gameSpeed=baseSpeed;
+
+ // Aumenta dificuldade com o tempo
+ if(!boostActive&&!focusActive){
+  gameSpeed=baseSpeed+player.score/12000;
+  spawnInterval=Math.max(800,1600-player.score/20);
+ }
+
+ // Spawn
+ spawnTimer+=dt;
+ if(spawnTimer>=spawnInterval){spawnPortal();spawnTimer=0;}
+
+ // Atualiza portais
+ for(let i=portals.length-1;i>=0;i--){
+  const p=portals[i];
+  p.speed=gameSpeed;
+  p.update(dt);
+  if(p.isOff()){portals.splice(i,1);continue;}
+  const ph=player.getHitbox();
+  const pz=p.getPassZone();
+  // Trigger quando o cone atravessa a zona central do portal
+  if(rects(ph,pz)&&!p.triggered){
+   p.applyEffect(player);
+  }
+ }
+
+ player.update(dt);
+ checkMission(player);
+ missionTimer+=dt;
+ if(missionTimer>=MISSION_DURATION&&missionDone===false){
+  // Missao expirou sem cumprir
+  showFeedback('Missao expirada!','#888',1500);
+  nextMission();
+ }
+ updateParticles(dt);
+ updateHUD();
+}
+
+// ========== RENDER ==========
+function render(){
+ drawBackground();
+ portals.forEach(p=>p.draw());
+ drawParticles();
+ player.draw();
+
+ // Overlay boost
+ if(boostActive){
+  ctx.save();
+  ctx.strokeStyle='rgba(255,220,0,0.3)';
+  ctx.lineWidth=6;
+  ctx.strokeRect(3,3,W-6,H-6);
+  ctx.restore();
+ }
+ // Overlay foco
+ if(focusActive){
+  ctx.save();
+  ctx.strokeStyle='rgba(255,0,255,0.4)';
+  ctx.lineWidth=4;
+  ctx.strokeRect(3,3,W-6,H-6);
+  ctx.restore();
+ }
+}
+
+// ========== GAME LOOP ==========
+function loop(ts){
+ if(!running)return;
+ if(!lastTime)lastTime=ts;
+ const dt=Math.min(ts-lastTime,50);
+ lastTime=ts;
+ update(dt);
+ render();
+ requestAnimationFrame(loop);
+}
+
+// ========== START / RESTART ==========
+function startGame(){
+ player=new ConePlayer();
+ portals.length=0;
+ particles.length=0;
+ trail.length=0;
+ gameSpeed=4;baseSpeed=4;
+ focusActive=false;focusTimer=0;
+ boostActive=false;boostTimer=0;
+ spawnTimer=0;spawnInterval=1600;
+ running=true;lastTime=0;
+ nextMission();
+ requestAnimationFrame(loop);
+}
+
+document.getElementById('startBtn').addEventListener('click',()=>{
+ startScreen.style.display='none';
+ startGame();
+});
+document.getElementById('restartBtn').addEventListener('click',()=>{
+ gameOverEl.style.display='none';
+ startGame();
+});
+
+</script>
+</body>
+</html>
