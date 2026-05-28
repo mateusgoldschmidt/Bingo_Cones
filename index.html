@@ -458,11 +458,11 @@
 
     <header>
         <h1>BINGO DOS CONES</h1>
-        <p>Geometria Espacial • Matriz 5x5</p>
+        <p>Geometria Espacial</p>
     </header>
 
     <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('sorteio')">Painel do Professor</button>
+        <button class="tab-btn active" onclick="switchTab('sorteio')">Painel do Sorteio</button>
         <button class="tab-btn" onclick="switchTab('cartelas')">Gerar & Imprimir Cartelas</button>
     </div>
 
@@ -482,7 +482,7 @@
                         <div class="draw-question" id="draw-question">Clique em "Sortear Próximo Item" para iniciar.</div>
                         
                         <div class="draw-answer-container" id="answer-container">
-                            <button id="btn-reveal" class="btn" onclick="toggleAnswer()" style="font-size: 0.9rem; padding: 8px 15px; border-color: #fff; color: #fff;">👁️ Revelar Resposta aos Alunos</button>
+                            <button id="btn-reveal" class="btn" onclick="toggleAnswer()" style="font-size: 0.9rem; padding: 8px 15px; border-color: #fff; color: #fff;">👁️ Revelar Resposta</button>
                             <div class="draw-answer-text" id="draw-answer">Gabarito: </div>
                         </div>
                     </div>
@@ -695,7 +695,7 @@
             document.getElementById('draw-answer').style.display = 'none';
             
             const btnReveal = document.getElementById('btn-reveal');
-            btnReveal.innerHTML = '👁️ Revelar Resposta aos Alunos';
+            btnReveal.innerHTML = '👁️ Revelar Resposta';
             btnReveal.style.backgroundColor = 'transparent';
             btnReveal.style.color = '#fff';
 
@@ -719,7 +719,7 @@
                 btnReveal.style.color = '#ccc';
             } else {
                 ansText.style.display = 'none';
-                btnReveal.innerHTML = '👁️ Revelar Resposta aos Alunos';
+                btnReveal.innerHTML = '👁️ Revelar Resposta';
                 btnReveal.style.backgroundColor = 'transparent';
                 btnReveal.style.color = '#fff';
             }
